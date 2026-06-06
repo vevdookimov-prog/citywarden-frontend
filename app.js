@@ -117,13 +117,13 @@
         id: "focus-fill",
         type: "fill",
         source: "focus",
-        paint: { "fill-color": "#0d1117", "fill-opacity": 0.05 },
+        paint: { "fill-color": "#76b900", "fill-opacity": 0.08 },
       });
       map.addLayer({
         id: "focus-line",
         type: "line",
         source: "focus",
-        paint: { "line-color": "#0d1117", "line-width": 2.4, "line-opacity": 0.9 },
+        paint: { "line-color": "#4a7d00", "line-width": 2.6, "line-opacity": 0.95 },
       });
 
       // Camera dots (always visible so you can see cameras with zero heat).

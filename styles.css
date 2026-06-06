@@ -9,6 +9,10 @@
   --line-soft: #eaeef2;
   --heat: #e5484d;
   --nvidia: #76b900;
+  --green: #76b900; /* vivid brand green */
+  --accent: #4a7d00; /* interactive bg, readable white text */
+  --accent-dark: #3a6300; /* hover */
+  --accent-soft: #eef6e0; /* light green surfaces / hover tint */
   --radius: 14px;
   --shadow-sm: 0 1px 2px rgba(27, 31, 36, 0.05);
   --shadow: 0 1px 2px rgba(27, 31, 36, 0.05), 0 8px 24px rgba(27, 31, 36, 0.07);
@@ -57,7 +61,7 @@ body {
   width: 20px;
   height: 20px;
   border-radius: 6px;
-  background: var(--ink);
+  background: var(--green);
   position: relative;
 }
 .brand-mark::after {
@@ -110,16 +114,22 @@ body.view-detail .app {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  min-width: 0;
 }
 .map-panel {
   grid-area: map;
+  min-height: 0;
+  min-width: 0;
 }
 .summary-panel {
   grid-area: summary;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* show/hide by view */
-.detail-only {
+body:not(.view-detail) .detail-only {
   display: none;
 }
 body.view-detail .overview-only {
@@ -168,7 +178,7 @@ body.view-detail .map-back.detail-only {
   width: 19px;
   height: 19px;
   border-radius: 6px;
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
@@ -226,9 +236,9 @@ body.view-detail .map-back.detail-only {
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 #borough-search:focus {
-  border-color: var(--ink);
+  border-color: var(--accent);
   background: var(--bg);
-  box-shadow: 0 0 0 3px rgba(13, 17, 23, 0.06);
+  box-shadow: 0 0 0 3px rgba(118, 185, 0, 0.18);
 }
 
 /* ---------- Borough list ---------- */
@@ -378,7 +388,7 @@ body.view-detail .map-back.detail-only {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -395,7 +405,7 @@ body.view-detail .map-back.detail-only {
 }
 .back-btn:hover,
 .map-back:hover {
-  background: #000;
+  background: var(--accent-dark);
   transform: translateX(-3px);
 }
 .back-ic {
@@ -472,7 +482,7 @@ body.view-detail .map-back.detail-only {
   gap: 8px;
 }
 .rank-card:hover {
-  border-color: var(--ink);
+  border-color: var(--accent);
   transform: translateY(-3px);
   box-shadow: var(--shadow);
 }
@@ -485,7 +495,7 @@ body.view-detail .map-back.detail-only {
   font-size: 12px;
   font-weight: 800;
   color: #fff;
-  background: var(--ink);
+  background: var(--accent);
   border-radius: 6px;
   padding: 1px 7px;
 }
@@ -558,8 +568,8 @@ body.view-detail .map-back.detail-only {
   transition: border-color 0.12s, background 0.12s, transform 0.12s;
 }
 .alert-item:hover {
-  border-color: var(--ink);
-  background: var(--bg-soft);
+  border-color: var(--accent);
+  background: var(--accent-soft);
   transform: translateX(2px);
 }
 .alert-top {
@@ -824,16 +834,17 @@ body.view-detail .map-back.detail-only {
   color: var(--ink-2);
 }
 .btn-dismiss:hover {
-  border-color: var(--ink);
-  color: var(--ink);
+  border-color: var(--heat);
+  color: var(--heat);
 }
 .btn-act {
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--ink);
+  border-color: var(--accent);
 }
 .btn-act:hover {
-  background: #000;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
 }
 .toast {
   position: fixed;
