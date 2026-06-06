@@ -699,53 +699,100 @@ body.view-detail .map-back.detail-only {
 }
 
 /* ---------- Modal ---------- */
-.modal-backdrop {
-  position: fixed;
+/* ---------- Alert inspector (slides in over the map) ---------- */
+.inspector {
+  position: absolute;
   inset: 0;
-  background: rgba(13, 17, 23, 0.55);
-  backdrop-filter: blur(3px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: -18px 0 44px rgba(13, 17, 23, 0.14);
+  pointer-events: none;
+}
+.inspector.open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.inspector-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 20px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
-.modal-backdrop[hidden] {
-  display: none;
-}
-.modal {
+.inspector-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
   background: var(--bg);
-  border-radius: 16px;
-  width: min(560px, 100%);
-  max-height: 92vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
-  animation: pop 0.18s ease;
-}
-@keyframes pop {
-  from { transform: scale(0.97); opacity: 0; }
-}
-.modal-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  border: none;
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 22px;
-  line-height: 1;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
   color: var(--ink-2);
-  z-index: 2;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
 }
-.modal-close:hover {
+.inspector-back:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+.inspector-eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.inspector-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.inspector-foot {
+  margin-top: 16px;
+}
+/* note step shown after "Act on" */
+.note-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.note-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.note-label i {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.note-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 64px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--ink);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
-.modal-body {
-  padding: 0;
+.note-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(118, 185, 0, 0.16);
 }
 .clip {
   position: relative;
@@ -753,6 +800,9 @@ body.view-detail .map-back.detail-only {
   background: #000;
   border-radius: 16px 16px 0 0;
   overflow: hidden;
+}
+.inspector .clip {
+  border-radius: 0;
 }
 .clip video {
   width: 100%;
@@ -894,7 +944,7 @@ body.view-detail .map-back.detail-only {
 .modal-actions {
   display: flex;
   gap: 11px;
-  padding: 0 20px 20px;
+  padding: 0;
 }
 .btn {
   flex: 1;

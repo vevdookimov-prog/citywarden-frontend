@@ -98,6 +98,17 @@
             <span class="lg-dot off"></span> offline
           </span>
         </div>
+
+        <!-- Alert inspector: slides in over the map in borough detail -->
+        <aside class="inspector" id="inspector" aria-hidden="true">
+          <header class="inspector-head">
+            <button class="inspector-back" id="inspector-back">
+              <span class="back-ic" aria-hidden="true">←</span> Back to map
+            </button>
+            <span class="inspector-eyebrow">Alert review</span>
+          </header>
+          <div class="inspector-body" id="inspector-body"></div>
+        </aside>
       </section>
 
       <!-- BOTTOM: London summary (overview only) -->
@@ -113,14 +124,6 @@
         <div class="summary-rank" id="summary-rank"></div>
       </section>
     </main>
-
-    <!-- Alert / clip modal -->
-    <div class="modal-backdrop" id="modal-backdrop" hidden>
-      <div class="modal" role="dialog" aria-modal="true">
-        <button class="modal-close" id="modal-close" aria-label="Close">×</button>
-        <div class="modal-body" id="modal-body"></div>
-      </div>
-    </div>
 
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
     <script src="config.js"></script>

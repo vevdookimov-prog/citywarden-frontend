@@ -329,6 +329,7 @@
   }
 
   function exitBorough() {
+    closeInspector();
     state.view = "overview";
     state.borough = null;
     document.body.classList.remove("view-detail");
@@ -380,11 +381,11 @@
       )
       .join("");
     els.alertList.querySelectorAll(".alert-item").forEach((li) => {
-      li.addEventListener("click", () => openModal(+li.dataset.id));
+      li.addEventListener("click", () => openInspector(+li.dataset.id));
     });
   }
 
-  // ---------- modal ----------
+  // ---------- alert inspector ----------
   function clipMarkup(a) {
     if (a.clip_url) {
       return `<div class="clip"><video src="${a.clip_url}" controls autoplay muted playsinline></video></div>`;
@@ -402,11 +403,11 @@
       </div></div>`;
   }
 
-  function openModal(id) {
+  function openInspector(id) {
     const a = state.alerts.find((x) => x.id === id);
     if (!a) return;
     const conf = a.detail && a.detail.confidence ? Math.round(a.detail.confidence * 100) + "%" : "—";
-    els.modalBody.innerHTML = `
+    els.inspectorBody.innerHTML = `
       ${clipMarkup(a)}
       <div class="modal-meta">
         <div class="modal-rule">
@@ -422,29 +423,65 @@
           <div class="mg-item"><span>Alert ID</span>#${a.id}</div>
         </div>
         <div class="modal-report">${a.report}</div>
-      </div>
+        <div class="inspector-foot" id="inspector-foot"></div>
+      </div>`;
+    renderActions(a);
+    els.inspector.classList.add("open");
+    els.inspector.setAttribute("aria-hidden", "false");
+    els.inspectorBody.scrollTop = 0;
+  }
+
+  function renderActions(a) {
+    $("inspector-foot").innerHTML = `
       <div class="modal-actions">
         <button class="btn btn-dismiss" id="act-dismiss">Dismiss</button>
         <button class="btn btn-act" id="act-on">Act on</button>
       </div>`;
-    els.modalBackdrop.hidden = false;
     $("act-dismiss").addEventListener("click", () => resolveAlert(a, "dismissed"));
-    $("act-on").addEventListener("click", () => resolveAlert(a, "confirmed"));
+    $("act-on").addEventListener("click", () => renderNoteStep(a));
   }
 
-  function closeModal() {
-    els.modalBackdrop.hidden = true;
-    els.modalBody.innerHTML = "";
+  function renderNoteStep(a) {
+    $("inspector-foot").innerHTML = `
+      <div class="note-step">
+        <label class="note-label" for="act-note">Note for ${a.routed_to || "dispatch"} <i>(optional)</i></label>
+        <textarea id="act-note" class="note-input" rows="3"
+          placeholder="Context for responders — what to expect, access notes, priority…"></textarea>
+        <div class="modal-actions">
+          <button class="btn btn-dismiss" id="note-cancel">Cancel</button>
+          <button class="btn btn-act" id="note-submit">Confirm dispatch</button>
+        </div>
+      </div>`;
+    const ta = $("act-note");
+    ta.focus();
+    $("note-cancel").addEventListener("click", () => renderActions(a));
+    $("note-submit").addEventListener("click", () =>
+      resolveAlert(a, "confirmed", ta.value.trim())
+    );
   }
 
-  async function resolveAlert(a, verdict) {
+  function closeInspector() {
+    if (!els.inspector.classList.contains("open")) return;
+    els.inspector.classList.remove("open");
+    els.inspector.setAttribute("aria-hidden", "true");
+    const v = els.inspectorBody.querySelector("video");
+    if (v) try { v.pause(); } catch (e) {}
+    // clear content after the slide-out so it doesn't flash empty mid-transition
+    setTimeout(() => {
+      if (!els.inspector.classList.contains("open")) els.inspectorBody.innerHTML = "";
+    }, 340);
+  }
+
+  async function resolveAlert(a, verdict, note) {
     state.dismissed.add(a.id); // dismiss removes it; act-on routes & clears from queue
     await api.setVerdict(a.id, verdict);
-    closeModal();
+    closeInspector();
     toast(
       verdict === "dismissed"
         ? `Alert #${a.id} dismissed & clip deleted.`
-        : `Acting on alert #${a.id} — dispatched to ${a.routed_to || "control"}.`
+        : `Acting on alert #${a.id} — dispatched to ${a.routed_to || "control"}.${
+            note ? " Note attached." : ""
+          }`
     );
     if (state.view === "detail") renderDetail();
     renderSummary();
@@ -495,8 +532,8 @@
     els.detailSub = $("detail-borough-sub");
     els.detailStats = $("detail-stats");
     els.alertList = $("alert-list");
-    els.modalBackdrop = $("modal-backdrop");
-    els.modalBody = $("modal-body");
+    els.inspector = $("inspector");
+    els.inspectorBody = $("inspector-body");
 
     [state.cameras, state.alerts] = await Promise.all([
       api.getCameras(),
@@ -524,13 +561,10 @@
     });
     $("back-btn").addEventListener("click", exitBorough);
     $("map-back-btn").addEventListener("click", exitBorough);
-    $("modal-close").addEventListener("click", closeModal);
-    els.modalBackdrop.addEventListener("click", (e) => {
-      if (e.target === els.modalBackdrop) closeModal();
-    });
+    $("inspector-back").addEventListener("click", closeInspector);
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
-        if (!els.modalBackdrop.hidden) closeModal();
+        if (els.inspector.classList.contains("open")) closeInspector();
         else if (state.view === "detail") exitBorough();
       }
     });
