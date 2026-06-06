@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CityWarden — real-time incident detection across London</title>
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="view-overview">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">CityWarden</span>
+        <span class="brand-sub">London incident watch</span>
+      </div>
+      <div class="sponsor">
+        Sponsored by <span class="sponsor-nvidia">NVIDIA</span>
+      </div>
+    </header>
+
+    <!-- Main app grid -->
+    <main class="app">
+      <!-- LEFT: control / borough panel -->
+      <section class="panel left-panel" id="left-panel">
+        <!-- Overview state -->
+        <div class="panel-block" id="borough-picker">
+          <h2 class="panel-title">Boroughs</h2>
+          <p class="panel-hint">Search or pick a borough to drill in.</p>
+          <div class="search">
+            <svg class="search-ic" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            <input
+              id="borough-search"
+              type="text"
+              placeholder="Search a borough…"
+              autocomplete="off"
+            />
+          </div>
+          <ul class="borough-list" id="borough-list"></ul>
+        </div>
+
+        <!-- Detail state (hidden in overview) -->
+        <div class="panel-block detail-only" id="borough-detail">
+          <button class="back-btn" id="back-btn">
+            <span aria-hidden="true">←</span> All of London
+          </button>
+          <h2 class="panel-title" id="detail-borough-name">Borough</h2>
+          <p class="panel-hint" id="detail-borough-sub">
+            Here's what's happening in this borough.
+          </p>
+          <div class="stat-row" id="detail-stats"></div>
+
+          <h3 class="section-label">Live alerts</h3>
+          <ul class="alert-list" id="alert-list"></ul>
+        </div>
+      </section>
+
+      <!-- RIGHT: map -->
+      <section class="panel map-panel" id="map-panel">
+        <div id="map"></div>
+        <div class="map-legend">
+          <span class="legend-title">Incident heat</span>
+          <span class="legend-bar"></span>
+          <span class="legend-scale"><i>low</i><i>high</i></span>
+        </div>
+      </section>
+
+      <!-- BOTTOM: London summary (overview only) -->
+      <section class="panel summary-panel overview-only" id="summary-panel">
+        <div class="summary-head">
+          <div>
+            <h2 class="panel-title">London right now</h2>
+            <p class="panel-hint" id="summary-sub">Live across the network.</p>
+          </div>
+          <div class="summary-kpis" id="summary-kpis"></div>
+        </div>
+        <div class="summary-rank" id="summary-rank"></div>
+      </section>
+    </main>
+
+    <!-- Alert / clip modal -->
+    <div class="modal-backdrop" id="modal-backdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true">
+        <button class="modal-close" id="modal-close" aria-label="Close">×</button>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+    <script src="config.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
