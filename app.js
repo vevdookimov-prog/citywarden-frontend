@@ -16,6 +16,11 @@
   let mapReady = false;
   const els = {};
 
+  const EMPTY_FC = { type: "FeatureCollection", features: [] };
+  const WORLD_RING = [
+    [-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85],
+  ];
+
   // ---------- helpers ----------
   const $ = (id) => document.getElementById(id);
   const fmtNum = (n) => n.toLocaleString("en-GB");
@@ -88,6 +93,39 @@
         },
       });
 
+      // Subtle outline of ALL boroughs so London reads as a set of areas.
+      map.addSource("boroughs", { type: "geojson", data: window.CW_GEO.GEO });
+      map.addLayer({
+        id: "boroughs-line",
+        type: "line",
+        source: "boroughs",
+        paint: { "line-color": "#c4ccd4", "line-width": 0.8, "line-opacity": 0.7 },
+      });
+
+      // Focus mask: dims everything outside the selected borough.
+      map.addSource("focus-mask", { type: "geojson", data: EMPTY_FC });
+      map.addLayer({
+        id: "focus-mask-fill",
+        type: "fill",
+        source: "focus-mask",
+        paint: { "fill-color": "#f6f8fa", "fill-opacity": 0.78 },
+      });
+
+      // Selected borough fill + bold outline.
+      map.addSource("focus", { type: "geojson", data: EMPTY_FC });
+      map.addLayer({
+        id: "focus-fill",
+        type: "fill",
+        source: "focus",
+        paint: { "fill-color": "#0d1117", "fill-opacity": 0.05 },
+      });
+      map.addLayer({
+        id: "focus-line",
+        type: "line",
+        source: "focus",
+        paint: { "line-color": "#0d1117", "line-width": 2.4, "line-opacity": 0.9 },
+      });
+
       // Camera dots (always visible so you can see cameras with zero heat).
       map.addLayer({
         id: "cam-dots",
@@ -103,6 +141,7 @@
       });
 
       mapReady = true;
+      if (state.view === "detail" && state.borough) setBoroughFocus(state.borough);
       wireMapInteractions();
     });
   }
@@ -141,15 +180,24 @@
     });
   }
 
-  function fitToBorough(name) {
-    const cams = state.cameras.filter((c) => c.borough === name);
-    if (!cams.length) return;
-    const b = new mapboxgl.LngLatBounds();
-    cams.forEach((c) => b.extend([c.lon, c.lat]));
-    map.fitBounds(b, { padding: 90, maxZoom: 14.5, duration: 800 });
+  function setBoroughFocus(name) {
+    const f = window.CW_GEO.featureByName[name];
+    if (!f) return;
+    map.getSource("focus").setData(f);
+    map.getSource("focus-mask").setData({
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [WORLD_RING, f.geometry.coordinates[0]],
+      },
+    });
+    const b = window.CW_GEO.featureBounds(f);
+    map.fitBounds(b, { padding: 70, maxZoom: 14.5, duration: 850 });
   }
 
-  function fitToLondon() {
+  function clearBoroughFocus() {
+    map.getSource("focus").setData(EMPTY_FC);
+    map.getSource("focus-mask").setData(EMPTY_FC);
     map.fitBounds(cfg.LONDON_BOUNDS, { padding: 30, duration: 800 });
   }
 
@@ -162,19 +210,20 @@
     const mx = state.ranked.length ? state.ranked[0].events : 1;
     els.boroughList.innerHTML =
       items
-        .map(
-          (b) => `
+        .map((b) => {
+          const rank = state.ranked.indexOf(b) + 1;
+          return `
       <li class="borough-item" data-borough="${b.borough}">
-        <span class="bi-dot"></span>
+        <span class="bi-rank">${rank}</span>
         <div style="flex:1">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
             <span class="bi-name">${b.borough}</span>
-            <span class="bi-meta">${fmtNum(b.events)} ev</span>
+            <span class="bi-meta">${fmtNum(b.events)} ev · ${b.alerts} alerts</span>
           </div>
-          <div class="bi-bar" style="width:${Math.max(6, (b.events / mx) * 100)}%"></div>
+          <div class="bi-bar" style="width:${Math.max(4, (b.events / mx) * 100)}%"></div>
         </div>
-      </li>`
-        )
+      </li>`;
+        })
         .join("") || `<li class="empty">No boroughs match "${filter}".</li>`;
     els.boroughList.querySelectorAll(".borough-item").forEach((li) => {
       li.addEventListener("click", () => enterBorough(li.dataset.borough));
@@ -230,8 +279,8 @@
     document.body.classList.add("view-detail");
     renderDetail();
     if (mapReady) {
-      map.resize();
-      fitToBorough(name);
+      setTimeout(() => map.resize(), 80);
+      setBoroughFocus(name);
     }
   }
 
@@ -241,8 +290,8 @@
     document.body.classList.remove("view-detail");
     document.body.classList.add("view-overview");
     if (mapReady) {
-      map.resize();
-      fitToLondon();
+      setTimeout(() => map.resize(), 80);
+      clearBoroughFocus();
     }
   }
 
@@ -408,6 +457,7 @@
       }
     });
     $("back-btn").addEventListener("click", exitBorough);
+    $("map-back-btn").addEventListener("click", exitBorough);
     $("modal-close").addEventListener("click", closeModal);
     els.modalBackdrop.addEventListener("click", (e) => {
       if (e.target === els.modalBackdrop) closeModal();

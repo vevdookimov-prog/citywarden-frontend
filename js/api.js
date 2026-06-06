@@ -12,8 +12,11 @@
     return res.json();
   }
 
-  // Attach borough by nearest mock borough centroid (real /cameras has no borough).
+  // Attach borough via real point-in-polygon (real /cameras has no borough),
+  // falling back to nearest centroid for points just outside a boundary.
   function inferBorough(lon, lat) {
+    const hit = window.CW_GEO.boroughOf(lon, lat);
+    if (hit) return hit;
     let best = null;
     let bestD = Infinity;
     mock.BOROUGHS.forEach((b) => {

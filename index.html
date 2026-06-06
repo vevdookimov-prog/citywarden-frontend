@@ -29,8 +29,11 @@
       <section class="panel left-panel" id="left-panel">
         <!-- Overview state -->
         <div class="panel-block" id="borough-picker">
+          <span class="eyebrow"><i>1</i> Choose a borough</span>
           <h2 class="panel-title">Boroughs</h2>
-          <p class="panel-hint">Search or pick a borough to drill in.</p>
+          <p class="panel-hint">
+            Search or pick a borough to focus the map and see live alerts.
+          </p>
           <div class="search">
             <svg class="search-ic" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -54,9 +57,11 @@
         <!-- Detail state (hidden in overview) -->
         <div class="panel-block detail-only" id="borough-detail">
           <button class="back-btn" id="back-btn">
-            <span aria-hidden="true">←</span> All of London
+            <span class="back-ic" aria-hidden="true">←</span>
+            Back to all of London
           </button>
-          <h2 class="panel-title" id="detail-borough-name">Borough</h2>
+          <span class="eyebrow"><i>★</i> Borough focus</span>
+          <h2 class="panel-title detail-title" id="detail-borough-name">Borough</h2>
           <p class="panel-hint" id="detail-borough-sub">
             Here's what's happening in this borough.
           </p>
@@ -70,6 +75,10 @@
       <!-- RIGHT: map -->
       <section class="panel map-panel" id="map-panel">
         <div id="map"></div>
+        <span class="eyebrow map-eyebrow overview-only"><i>2</i> Live heat map</span>
+        <button class="map-back detail-only" id="map-back-btn">
+          <span class="back-ic" aria-hidden="true">←</span> Back to London
+        </button>
         <div class="map-legend">
           <span class="legend-title">Incident heat</span>
           <span class="legend-bar"></span>
@@ -81,6 +90,7 @@
       <section class="panel summary-panel overview-only" id="summary-panel">
         <div class="summary-head">
           <div>
+            <span class="eyebrow"><i>3</i> London summary</span>
             <h2 class="panel-title">London right now</h2>
             <p class="panel-hint" id="summary-sub">Live across the network.</p>
           </div>
@@ -100,6 +110,7 @@
 
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
     <script src="config.js"></script>
+    <script src="js/boroughs.js"></script>
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>
     <script src="app.js"></script>

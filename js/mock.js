@@ -1,13 +1,66 @@
-// Bundled mock data so the deployed Pages site looks fully alive without a
-// reachable backend. Shapes mirror backend/main.py exactly:
-//   /cameras -> {id, name, lat, lon, available}
-//   /alerts  -> {id, camera_id, camera_name, lat, lon, created_at, rule,
-//                detail, severity, routed_to, report, verdict, clip_url}
-// We additionally attach `borough` + per-camera `events` (the heat counter),
-// which the frontend derives; the real backend exposes the same via /alerts.
+// Bundled mock data. Cameras are sampled INSIDE the real borough polygons
+// (window.CW_BOROUGHS_GEO from boroughs.js) so heat + boundaries line up.
+// Shapes mirror backend/main.py (/cameras, /alerts).
 
 (function () {
-  // Deterministic PRNG so the demo is stable across reloads.
+  const GEO = window.CW_BOROUGHS_GEO;
+
+  // ---- geometry helpers (exposed as CW_GEO) ----
+  function ringBounds(ring, b) {
+    for (const [x, y] of ring) {
+      if (x < b[0][0]) b[0][0] = x;
+      if (y < b[0][1]) b[0][1] = y;
+      if (x > b[1][0]) b[1][0] = x;
+      if (y > b[1][1]) b[1][1] = y;
+    }
+    return b;
+  }
+  function featureBounds(f) {
+    const b = [[Infinity, Infinity], [-Infinity, -Infinity]];
+    f.geometry.coordinates.forEach((r) => ringBounds(r, b));
+    return b;
+  }
+  function featureCenter(f) {
+    const b = featureBounds(f);
+    return [(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2];
+  }
+  function pointInRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1];
+      const xj = ring[j][0], yj = ring[j][1];
+      const hit =
+        yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (hit) inside = !inside;
+    }
+    return inside;
+  }
+  function pointInFeature(x, y, f) {
+    const rings = f.geometry.coordinates;
+    if (!pointInRing(x, y, rings[0])) return false;
+    for (let k = 1; k < rings.length; k++)
+      if (pointInRing(x, y, rings[k])) return false; // hole
+    return true;
+  }
+  const featureByName = {};
+  GEO.features.forEach((f) => (featureByName[f.properties.name] = f));
+
+  function boroughOf(lon, lat) {
+    for (const f of GEO.features)
+      if (pointInFeature(lon, lat, f)) return f.properties.name;
+    return null;
+  }
+
+  window.CW_GEO = {
+    GEO,
+    featureByName,
+    featureBounds,
+    featureCenter,
+    pointInFeature,
+    boroughOf,
+  };
+
+  // ---- deterministic PRNG ----
   function mulberry32(seed) {
     return function () {
       seed |= 0;
@@ -19,23 +72,15 @@
   }
   const rand = mulberry32(20260606);
 
-  // 14 representative London boroughs with approximate centroids [lon, lat].
-  const BOROUGHS = [
-    { name: "Camden", center: [-0.1426, 51.5290], heat: 1.0 },
-    { name: "Westminster", center: [-0.1372, 51.4975], heat: 0.95 },
-    { name: "Southwark", center: [-0.0877, 51.5028], heat: 0.8 },
-    { name: "Tower Hamlets", center: [-0.0333, 51.5099], heat: 0.78 },
-    { name: "Hackney", center: [-0.0553, 51.5450], heat: 0.62 },
-    { name: "Islington", center: [-0.1031, 51.5416], heat: 0.6 },
-    { name: "Lambeth", center: [-0.1167, 51.4607], heat: 0.7 },
-    { name: "Kensington and Chelsea", center: [-0.1938, 51.4991], heat: 0.4 },
-    { name: "Hammersmith and Fulham", center: [-0.2237, 51.4927], heat: 0.35 },
-    { name: "Wandsworth", center: [-0.1910, 51.4571], heat: 0.33 },
-    { name: "Newham", center: [0.0333, 51.5255], heat: 0.45 },
-    { name: "Greenwich", center: [0.0098, 51.4825], heat: 0.3 },
-    { name: "Lewisham", center: [-0.0209, 51.4452], heat: 0.28 },
-    { name: "City of London", center: [-0.0917, 51.5155], heat: 0.5 },
-  ];
+  // Relative incident pressure per borough (others default to ~0.18).
+  const HEAT = {
+    Camden: 1.0, Westminster: 0.96, Southwark: 0.82, "Tower Hamlets": 0.8,
+    Lambeth: 0.74, Hackney: 0.64, Islington: 0.62, "City of London": 0.55,
+    Newham: 0.5, "Kensington and Chelsea": 0.42, "Hammersmith and Fulham": 0.36,
+    Wandsworth: 0.34, Greenwich: 0.32, Lewisham: 0.3, Haringey: 0.3,
+    Brent: 0.28, Ealing: 0.26, Croydon: 0.26, "Waltham Forest": 0.24,
+  };
+  const heatOf = (name) => (name in HEAT ? HEAT[name] : 0.18);
 
   const RULES = [
     { rule: "vehicle_collision", label: "Vehicle collision" },
@@ -48,47 +93,55 @@
   const SEVERITIES = ["P1", "P2", "P3", "P4"];
   const ROUTES = ["Met Police", "LAS (Ambulance)", "LFB (Fire)", "TfL Control"];
 
-  function jitter(v, amt) {
-    return v + (rand() - 0.5) * amt;
-  }
-
-  // --- Build cameras -------------------------------------------------------
+  // ---- build cameras inside each borough ----
   const CAMERAS = [];
+  const BOROUGHS = [];
   let camN = 1;
-  BOROUGHS.forEach((b) => {
-    const count = 3 + Math.floor(rand() * 4); // 3-6 cameras per borough
-    for (let i = 0; i < count; i++) {
+  GEO.features.forEach((f) => {
+    const name = f.properties.name;
+    const heat = heatOf(name);
+    const b = featureBounds(f);
+    const center = featureCenter(f);
+    BOROUGHS.push({ name, center, bounds: b, heat });
+
+    const count = 3 + Math.floor(rand() * 4); // 3-6
+    let placed = 0;
+    let guard = 0;
+    while (placed < count && guard < 400) {
+      guard++;
+      const lon = b[0][0] + rand() * (b[1][0] - b[0][0]);
+      const lat = b[0][1] + rand() * (b[1][1] - b[0][1]);
+      if (!pointInFeature(lon, lat, f)) continue;
       const id = "n" + String(camN).padStart(3, "0");
-      const lon = jitter(b.center[0], 0.022);
-      const lat = jitter(b.center[1], 0.016);
-      // Event counter scaled by borough heat (this is what drives the heatmap).
-      const base = Math.pow(rand(), 1.6); // skew toward low
-      const events = Math.round(base * 9800 * b.heat + rand() * 40);
+      const base = Math.pow(rand(), 1.6);
+      const events = Math.round(base * 9800 * heat + rand() * 30);
       CAMERAS.push({
         id,
-        name: `${b.name} Cam ${id.toUpperCase()}`,
+        name: `${name} Cam ${id.toUpperCase()}`,
         lat: +lat.toFixed(5),
         lon: +lon.toFixed(5),
         available: rand() > 0.08,
-        borough: b.name,
+        borough: name,
         events,
       });
       camN++;
+      placed++;
     }
   });
 
-  // --- Build alerts (recent, per the hottest cameras) ----------------------
+  // ---- alerts from the hottest cameras ----
   const ALERTS = [];
   const hot = [...CAMERAS].sort((a, b) => b.events - a.events);
   const now = Date.now();
   let alertId = 1;
-  hot.slice(0, 24).forEach((cam, idx) => {
+  hot.slice(0, 30).forEach((cam, idx) => {
     const nAlerts = 1 + Math.floor(rand() * 2);
     for (let k = 0; k < nAlerts; k++) {
       const r = RULES[Math.floor(rand() * RULES.length)];
-      const sevIdx = Math.min(3, Math.floor(rand() * (idx < 6 ? 3 : 4)));
+      const sevIdx = Math.min(3, Math.floor(rand() * (idx < 8 ? 3 : 4)));
       const sev = SEVERITIES[sevIdx];
       const minsAgo = Math.floor(rand() * 220) + 1;
+      const conf = +(0.62 + rand() * 0.37).toFixed(2);
       ALERTS.push({
         id: alertId++,
         camera_id: cam.id,
@@ -99,42 +152,37 @@
         created_at: new Date(now - minsAgo * 60000).toISOString(),
         rule: r.rule,
         rule_label: r.label,
-        detail: { confidence: +(0.62 + rand() * 0.37).toFixed(2) },
+        detail: { confidence: conf },
         severity: sev,
         routed_to: ROUTES[Math.floor(rand() * ROUTES.length)],
         report:
           `${r.label} detected at ${cam.name}. ` +
           `Automated visual verification confirmed the event with ` +
-          `${Math.round((0.62 + rand() * 0.37) * 100)}% confidence. ` +
-          `Recommended action: dispatch nearest available unit and monitor for escalation.`,
+          `${Math.round(conf * 100)}% confidence. Recommended action: ` +
+          `dispatch nearest available unit and monitor for escalation.`,
         verdict: null,
-        clip_url: null, // mock mode renders a synthetic CCTV clip
+        clip_url: null,
       });
     }
   });
   ALERTS.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  // --- London summary (overview bottom bar) --------------------------------
   function summarise(alerts, cameras) {
-    const byBorough = {};
+    const byB = {};
     cameras.forEach((c) => {
-      byBorough[c.borough] = byBorough[c.borough] || {
-        borough: c.borough,
-        events: 0,
-        cameras: 0,
-        alerts: 0,
-        rules: {},
+      byB[c.borough] = byB[c.borough] || {
+        borough: c.borough, events: 0, cameras: 0, alerts: 0, rules: {},
       };
-      byBorough[c.borough].events += c.events;
-      byBorough[c.borough].cameras += 1;
+      byB[c.borough].events += c.events;
+      byB[c.borough].cameras += 1;
     });
     alerts.forEach((a) => {
-      const b = byBorough[a.borough];
+      const b = byB[a.borough];
       if (!b) return;
       b.alerts += 1;
       b.rules[a.rule_label] = (b.rules[a.rule_label] || 0) + 1;
     });
-    const ranked = Object.values(byBorough)
+    return Object.values(byB)
       .map((b) => ({
         ...b,
         topRules: Object.entries(b.rules)
@@ -143,7 +191,6 @@
           .map((e) => e[0]),
       }))
       .sort((a, b) => b.events - a.events);
-    return ranked;
   }
 
   window.CW_MOCK = {
