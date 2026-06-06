@@ -23,6 +23,7 @@
   --sev-p2: #bc4c00;
   --sev-p3: #9a6700;
   --sev-p4: #57606a;
+  --mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
     Arial, sans-serif;
 }
@@ -40,6 +41,7 @@ body {
   color: var(--ink);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Top bar ---------- */
@@ -90,6 +92,54 @@ body {
 .sponsor-nvidia {
   color: var(--nvidia);
   font-weight: 800;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.sysstat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.sys-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+.sys-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: livepulse 1.8s ease-out infinite;
+}
+@keyframes livepulse {
+  0% { box-shadow: 0 0 0 0 rgba(118, 185, 0, 0.5); }
+  70% { box-shadow: 0 0 0 7px rgba(118, 185, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(118, 185, 0, 0); }
+}
+.sys-metric b {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-weight: 700;
+}
+.sys-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+}
+.sys-clock {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.01em;
 }
 
 /* ---------- App grid ---------- */
@@ -278,8 +328,9 @@ body.view-detail .map-back.detail-only {
   flex: 1;
 }
 .bi-meta {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--ink-3);
+  font-family: var(--mono);
 }
 .bi-bar {
   height: 5px;
@@ -351,6 +402,31 @@ body.view-detail .map-back.detail-only {
 }
 .legend-scale i {
   font-style: normal;
+}
+.legend-cams {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+.lg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px var(--line);
+  flex: none;
+}
+.lg-dot:not(:first-child) {
+  margin-left: 8px;
+}
+.lg-dot.off {
+  background: var(--ink-3);
 }
 
 /* mapbox popup */
@@ -452,6 +528,7 @@ body.view-detail .map-back.detail-only {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.03em;
+  font-family: var(--mono);
 }
 .kpi-label {
   font-size: 10px;
@@ -508,6 +585,7 @@ body.view-detail .map-back.detail-only {
   font-size: 12px;
   color: var(--heat);
   font-weight: 700;
+  font-family: var(--mono);
 }
 .rank-rules {
   font-size: 11.5px;
@@ -542,6 +620,7 @@ body.view-detail .map-back.detail-only {
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  font-family: var(--mono);
 }
 .stat-label {
   font-size: 10px;
@@ -606,6 +685,7 @@ body.view-detail .map-back.detail-only {
 .alert-time {
   font-size: 11px;
   color: var(--ink-3);
+  font-family: var(--mono);
 }
 .alert-sub {
   font-size: 12px;
@@ -879,4 +959,57 @@ body.view-detail .map-back.detail-only {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ink-3);
+}
+
+/* ---------- Responsive: stack on narrow viewports ---------- */
+@media (max-width: 960px) {
+  html,
+  body {
+    height: auto;
+  }
+  body {
+    overflow: auto;
+  }
+  .topbar {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 10px 16px;
+  }
+  .topbar-right {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sysstat {
+    gap: 9px;
+  }
+  .app {
+    height: auto;
+    min-height: calc(100vh - var(--topbar-h));
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 340px auto;
+    grid-template-areas:
+      "left"
+      "map"
+      "summary";
+  }
+  body.view-detail .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 360px;
+    grid-template-areas:
+      "left"
+      "map";
+  }
+  .left-panel {
+    overflow: visible;
+  }
+  .borough-list {
+    max-height: 320px;
+  }
+  .alert-list {
+    max-height: 55vh;
+  }
+  .map-panel {
+    min-height: 340px;
+  }
 }

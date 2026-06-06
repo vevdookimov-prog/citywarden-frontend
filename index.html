@@ -18,8 +18,18 @@
         <span class="brand-name">CityWarden</span>
         <span class="brand-sub">London incident watch</span>
       </div>
-      <div class="sponsor">
-        Sponsored by <span class="sponsor-nvidia">NVIDIA</span>
+      <div class="topbar-right">
+        <div class="sysstat">
+          <span class="sys-live"><span class="sys-dot"></span>LIVE</span>
+          <span class="sys-sep"></span>
+          <span class="sys-metric"><b id="sys-cams">—</b> cameras</span>
+          <span class="sys-metric"><b id="sys-boroughs">—</b> boroughs</span>
+          <span class="sys-sep"></span>
+          <span class="sys-clock" id="sys-clock">--:--:-- UTC</span>
+        </div>
+        <div class="sponsor">
+          Sponsored by <span class="sponsor-nvidia">NVIDIA</span>
+        </div>
       </div>
     </header>
 
@@ -83,6 +93,10 @@
           <span class="legend-title">Incident heat</span>
           <span class="legend-bar"></span>
           <span class="legend-scale"><i>low</i><i>high</i></span>
+          <span class="legend-cams">
+            <span class="lg-dot"></span> camera
+            <span class="lg-dot off"></span> offline
+          </span>
         </div>
       </section>
 

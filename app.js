@@ -94,13 +94,31 @@
       });
 
       // Subtle outline of ALL boroughs so London reads as a set of areas.
-      map.addSource("boroughs", { type: "geojson", data: window.CW_GEO.GEO });
+      // generateId lets us drive per-feature hover state.
+      map.addSource("boroughs", { type: "geojson", data: window.CW_GEO.GEO, generateId: true });
       map.addLayer({
         id: "boroughs-line",
         type: "line",
         source: "boroughs",
-        paint: { "line-color": "#c4ccd4", "line-width": 0.8, "line-opacity": 0.7 },
+        paint: {
+          "line-color": ["case", ["boolean", ["feature-state", "hover"], false], "#4a7d00", "#c4ccd4"],
+          "line-width": ["case", ["boolean", ["feature-state", "hover"], false], 2.2, 0.8],
+          "line-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.95, 0.7],
+        },
       });
+      // Invisible hit/affordance fill (tints on hover, sits beneath the heat).
+      map.addLayer(
+        {
+          id: "boroughs-fill",
+          type: "fill",
+          source: "boroughs",
+          paint: {
+            "fill-color": "#76b900",
+            "fill-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.1, 0],
+          },
+        },
+        "cam-heat"
+      );
 
       // Focus mask: dims everything outside the selected borough.
       map.addSource("focus-mask", { type: "geojson", data: EMPTY_FC });
@@ -177,6 +195,32 @@
     map.on("click", "cam-dots", (e) => {
       const b = e.features[0].properties.borough;
       if (b) enterBorough(b);
+    });
+
+    // Hover / click anywhere inside a borough (overview only).
+    let hoveredId = null;
+    function setHover(id) {
+      if (hoveredId !== null)
+        map.setFeatureState({ source: "boroughs", id: hoveredId }, { hover: false });
+      hoveredId = id;
+      if (id !== null)
+        map.setFeatureState({ source: "boroughs", id }, { hover: true });
+    }
+    map.on("mousemove", "boroughs-fill", (e) => {
+      if (state.view !== "overview" || !e.features.length) return;
+      map.getCanvas().style.cursor = "pointer";
+      const id = e.features[0].id;
+      if (id !== hoveredId) setHover(id);
+    });
+    map.on("mouseleave", "boroughs-fill", () => {
+      if (hoveredId !== null) map.getCanvas().style.cursor = "";
+      setHover(null);
+    });
+    map.on("click", "boroughs-fill", (e) => {
+      if (state.view !== "overview" || !e.features.length) return;
+      const name = e.features[0].properties.name;
+      setHover(null);
+      if (name) enterBorough(name);
     });
   }
 
@@ -421,6 +465,25 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
   }
 
+  // ---------- system status bar ----------
+  function startSystemBar() {
+    const cams = $("sys-cams");
+    const bor = $("sys-boroughs");
+    const clock = $("sys-clock");
+    if (cams) cams.textContent = fmtNum(state.cameras.length);
+    if (bor) bor.textContent = state.ranked.length;
+    function tick() {
+      if (!clock) return;
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      clock.textContent = `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(
+        d.getUTCSeconds()
+      )} UTC`;
+    }
+    tick();
+    setInterval(tick, 1000);
+  }
+
   // ---------- boot ----------
   async function boot() {
     els.boroughList = $("borough-list");
@@ -443,6 +506,7 @@
 
     renderBoroughList();
     renderSummary();
+    startSystemBar();
     initMap();
 
     els.boroughSearch.addEventListener("input", (e) =>
@@ -450,8 +514,10 @@
     );
     els.boroughSearch.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) return;
         const first = state.ranked.filter((b) =>
-          b.borough.toLowerCase().includes(e.target.value.trim().toLowerCase())
+          b.borough.toLowerCase().includes(q)
         )[0];
         if (first) enterBorough(first.borough);
       }
